@@ -37,7 +37,7 @@
 //!
 
 /// Error type
-#[derive(Debug,PartialEq)]
+#[derive(Debug,PartialEq,Eq)]
 pub enum VartyIntError {
 
     /// Attempted to read from an empty buffer. No bytes, so cannot return anything
@@ -49,6 +49,14 @@ pub enum VartyIntError {
     /// Attempted to read an integer that is too small for the data
     TooManyBytesForType,
 }
+
+impl std::fmt::Display for VartyIntError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> std::result::Result<(), std::fmt::Error> {
+        write!(fmt, "{:?}", self)
+    }
+}
+
+impl std::error::Error for VartyIntError {}
 
 macro_rules! write_unsigned {
     ( $name:ident, $type:ty ) => {
