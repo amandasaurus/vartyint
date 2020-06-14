@@ -116,7 +116,7 @@ pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
             },
             Some(v) => v,
         };
-        val = val | byte;
+        val |= byte;
         num_bits_read += 7;
         if is_last {
             // last byte
@@ -167,7 +167,7 @@ pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
             },
             Some(v) => v,
         };
-        val = val | byte;
+        val |= byte;
 
         num_bits_read += 7;
         if is_last  {
