@@ -199,6 +199,10 @@ pub fn $name(val: $type, buf: &mut Vec<u8>) {
         return;
     }
 
+    // to prevent around overflows, work with i128 version of numbers
+    // TODO What happens with i128 numbers & overflowing?
+    let val: i128 = val as i128;
+    // convert it to zig zag encoding
     let mut val = (val << 1) ^ (val >> std::mem::size_of::<$type>()*8-1);
     let mut num: u8;
 
