@@ -267,44 +267,40 @@ trait_impl!(u128, read_u128, write_u128);
 mod tests {
     use super::*;
 
-    #[test]
-    fn write1() {
-        macro_rules! assert_write {
-            ( $func:ident, $input:expr, $expected_output:expr ) => {
-                {
-                    let mut veccy = Vec::new();
-                    $func($input, &mut veccy);
-                    assert_eq!(veccy, $expected_output, "Ouput was {:?} but expected {:?}", veccy, $expected_output);
-                }
-        }}
+    macro_rules! test_write {
+        ( $name:ident, $func:ident, $input:expr, $expected_output:expr ) => {
+            #[test]
+            fn $name()
+            {
+                let mut veccy = Vec::new();
+                $func($input, &mut veccy);
+                assert_eq!(veccy, $expected_output, "Ouput was {:?} but expected {:?}", veccy, $expected_output);
+            }
+    }}
 
-        assert_write!(write_u128, 128, vec![128, 1]);
-        assert_write!(write_u8, 0, vec![0]);
-        assert_write!(write_u8, 0_u8, vec![0]);
-        assert_write!(write_u8, 1_u8, vec![0b000_0001]);
-        assert_write!(write_i8, 1_i8, vec![0b000_0010]);
-        assert_write!(write_i64, 1_i64, vec![0b000_0010]);
-        assert_write!(write_u32, 300_u32, vec![0b1010_1100, 0b0000_0010]);
-        assert_write!(write_i8, -1_i8, vec![0b000_0001]);
-        assert_write!(write_i32, 63_i32, vec![0x7e]);
-        assert_write!(write_u32, 63_u32, vec![63]);
-        assert_write!(write_i32, -64_i32, vec![0x7f]);
+    test_write!(write2, write_u128, 128, vec![128, 1]);
+    test_write!(write3, write_u8, 0, vec![0]);
+    test_write!(write4, write_u8, 0_u8, vec![0]);
+    test_write!(write5, write_u8, 1_u8, vec![0b000_0001]);
+    test_write!(write6, write_i8, 1_i8, vec![0b000_0010]);
+    test_write!(write7, write_i64, 1_i64, vec![0b000_0010]);
+    test_write!(write8, write_u32, 300_u32, vec![0b1010_1100, 0b0000_0010]);
+    test_write!(write9, write_i8, -1_i8, vec![0b000_0001]);
+    test_write!(write10, write_i32, 63_i32, vec![0x7e]);
+    test_write!(write11, write_u32, 63_u32, vec![63]);
+    test_write!(write12, write_i32, -64_i32, vec![0x7f]);
+    test_write!(write13, write_u32, 127, vec![0b0111_1111]);
+    test_write!(write14, write_u32, 128, vec![0b1000_0000, 0b0000_0001]);
+    test_write!(write15, write_usize, 127, vec![0b0111_1111]);
+    test_write!(write16, write_usize, 128, vec![0b1000_0000, 0b0000_0001]);
+    test_write!(write17, write_usize, 7681, vec![129, 60]);
+    test_write!(write18, write_i8, 0, vec![0]);
+    test_write!(write19, write_i32, 0, vec![0]);
+    test_write!(write20, write_u32, 0, vec![0]);
+    test_write!(write21, write_usize, 12345, vec![185, 96]);
+    test_write!(write22, write_isize, 12345, vec![242, 192, 1]);
 
-        assert_write!(write_u32, 127, vec![0b0111_1111]);
-        assert_write!(write_u32, 128, vec![0b1000_0000, 0b0000_0001]);
 
-        assert_write!(write_usize, 127, vec![0b0111_1111]);
-        assert_write!(write_usize, 128, vec![0b1000_0000, 0b0000_0001]);
-
-        assert_write!(write_usize, 7681, vec![129, 60]);
-
-        assert_write!(write_i8, 0, vec![0]);
-        assert_write!(write_i32, 0, vec![0]);
-        assert_write!(write_u32, 0, vec![0]);
-        assert_write!(write_usize, 12345, vec![185, 96]);
-        assert_write!(write_isize, 12345, vec![242, 192, 1]);
-
-    }
 
     #[test]
     fn read1() {
