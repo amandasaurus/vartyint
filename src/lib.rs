@@ -300,6 +300,8 @@ mod tests {
     test_write!(write21, write_usize, 12345, vec![185, 96]);
     test_write!(write22, write_isize, 12345, vec![242, 192, 1]);
 
+    test_write!(write23, write_i32, -1649404, vec![247, 171, 201, 1]);
+    test_write!(write24, write_i32, 2001649404, vec![248, 251, 245, 244, 14]);
 
 
     #[test]
