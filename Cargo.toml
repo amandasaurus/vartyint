@@ -1,11 +1,11 @@
 [package]
 name = "vartyint"
-version = "0.1.0"
-authors = ["Rory McCann <rory@technomancy.org>"]
-edition = "2018"
+version = "0.2.0-rc1"
+authors = ["Amanda McCann <amanda@technomancy.org>"]
+edition = "2021"
 license = "AGPL-3.0"
 description = "Read & Write varint encoded integers"
-repository = "https://git.sr.ht/~ebel/vartyint"
+repository = "https://github.com/amandasaurus/vartyint"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
