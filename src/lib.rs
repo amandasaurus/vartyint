@@ -40,9 +40,8 @@
 mod tests;
 
 /// Error type
-#[derive(Debug,PartialEq,Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum VartyIntError {
-
     /// Attempted to read from an empty buffer. No bytes, so cannot return anything
     EmptyBuffer,
 
@@ -63,25 +62,24 @@ impl std::error::Error for VartyIntError {}
 
 macro_rules! write_unsigned {
     ( $name:ident, $type:ty ) => {
+        /// Write an integer to this buffer
+        pub fn $name(mut val: $type, buf: &mut Vec<u8>) {
+            if val == 0 {
+                buf.push(0);
+                return;
+            }
 
-/// Write an integer to this buffer
-pub fn $name(mut val: $type, buf: &mut Vec<u8>) {
-    if val == 0 {
-        buf.push(0);
-        return;
-    }
-
-    while val != 0 {
-        let mut num = (val & 0b0111_1111) as u8;
-        val >>= 7;
-        if val != 0 {
-            num |= 0b1000_0000;
+            while val != 0 {
+                let mut num = (val & 0b0111_1111) as u8;
+                val >>= 7;
+                if val != 0 {
+                    num |= 0b1000_0000;
+                }
+                buf.push(num);
+            }
         }
-        buf.push(num);
-    }
-
+    };
 }
-}}
 
 write_unsigned!(write_u8, u8);
 write_unsigned!(write_u16, u16);
@@ -92,46 +90,44 @@ write_unsigned!(write_u128, u128);
 
 macro_rules! read_unsigned {
     ( $name:ident, $type:ty ) => {
+        /// Read an integer from this buffer
+        pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
+            if buf.is_empty() {
+                return Err(VartyIntError::EmptyBuffer);
+            }
+            let mut num_bits_read = 0;
+            let mut val: $type = 0;
+            let mut is_last: bool;
+            let mut byte: $type;
 
-/// Read an integer from this buffer
-pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
-    if buf.is_empty() {
-        return Err(VartyIntError::EmptyBuffer);
-    }
-    let mut num_bits_read = 0;
-    let mut val: $type = 0;
-    let mut is_last: bool;
-    let mut byte: $type;
+            loop {
+                if buf.is_empty() {
+                    return Err(VartyIntError::NotEnoughBytes);
+                }
+                byte = buf[0] as $type;
+                buf = &buf[1..];
 
-    loop {
-        if buf.is_empty() {
-            return Err(VartyIntError::NotEnoughBytes)
+                is_last = byte >> 7 == 0;
+                byte &= 0b0111_1111;
+
+                byte = match byte.checked_shl(num_bits_read) {
+                    None => {
+                        return Err(VartyIntError::TooManyBytesForType);
+                    }
+                    Some(v) => v,
+                };
+                val |= byte;
+                num_bits_read += 7;
+                if is_last {
+                    // last byte
+                    break;
+                }
+            }
+
+            Ok((val, buf))
         }
-        byte = buf[0] as $type;
-        buf = &buf[1..];
-
-        is_last = byte >> 7 == 0;
-        byte &= 0b0111_1111;
-
-        byte = match byte.checked_shl(num_bits_read) {
-            None => {
-                return Err(VartyIntError::TooManyBytesForType);
-            },
-            Some(v) => v,
-        };
-        val |= byte;
-        num_bits_read += 7;
-        if is_last {
-            // last byte
-            break
-        }
-
-    }
-
-    Ok((val, buf))
+    };
 }
-
-}}
 
 read_unsigned!(read_u8, u8);
 read_unsigned!(read_u16, u16);
@@ -142,83 +138,82 @@ read_unsigned!(read_usize, usize);
 
 macro_rules! read_signed {
     ( $name:ident, $type:ty, $bits:expr ) => {
+        /// Read an integer from this buffer
+        pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
+            if buf.is_empty() {
+                return Err(VartyIntError::EmptyBuffer);
+            }
+            let mut num_bits_read = 0;
+            let mut val: $type = 0;
+            let mut is_last: bool;
 
-/// Read an integer from this buffer
-pub fn $name(mut buf: &[u8]) -> Result<($type, &[u8]), VartyIntError> {
-    if buf.is_empty() {
-        return Err(VartyIntError::EmptyBuffer);
-    }
-    let mut num_bits_read = 0;
-    let mut val: $type = 0;
-    let mut is_last: bool;
+            let mut byte: $type;
 
-    let mut byte: $type;
+            loop {
+                if buf.is_empty() {
+                    return Err(VartyIntError::NotEnoughBytes);
+                }
+                byte = buf[0] as $type;
+                buf = &buf[1..];
 
-    loop {
-        if buf.is_empty() {
-            return Err(VartyIntError::NotEnoughBytes)
+                is_last = byte >> 7 == 0;
+                byte &= 0b0111_1111;
+
+                byte = match byte.checked_shl(num_bits_read) {
+                    None => {
+                        return Err(VartyIntError::TooManyBytesForType);
+                    }
+                    Some(v) => v,
+                };
+                val |= byte;
+
+                num_bits_read += 7;
+                if is_last {
+                    break;
+                }
+            }
+
+            let val = (val >> 1) ^ -(val & 1);
+
+            Ok((val, buf))
         }
-        byte = buf[0] as $type;
-        buf = &buf[1..];
-
-        is_last = byte >> 7 == 0;
-        byte &= 0b0111_1111;
-
-        byte = match byte.checked_shl(num_bits_read) {
-            None => {
-                return Err(VartyIntError::TooManyBytesForType);
-            },
-            Some(v) => v,
-        };
-        val |= byte;
-
-        num_bits_read += 7;
-        if is_last  {
-            break;
-        }
-    }
-
-    let val = (val >> 1) ^ -(val & 1);
-
-    Ok((val, buf))
+    };
 }
-
-}}
 
 read_signed!(read_i8, i8, 8);
 read_signed!(read_i16, i16, 16);
 read_signed!(read_i32, i32, 32);
 read_signed!(read_i64, i64, 64);
 read_signed!(read_i128, i128, 128);
-read_signed!(read_isize, isize, std::mem::size_of::<isize>()*8);
+read_signed!(read_isize, isize, std::mem::size_of::<isize>() * 8);
 
 macro_rules! write_signed {
     ( $name:ident, $type:ty ) => {
+        /// Write an integer to this buffer
+        pub fn $name(val: $type, buf: &mut Vec<u8>) {
+            if val == 0 {
+                buf.push(0);
+                return;
+            }
 
-/// Write an integer to this buffer
-pub fn $name(val: $type, buf: &mut Vec<u8>) {
-    if val == 0 {
-        buf.push(0);
-        return;
-    }
+            // to prevent around overflows, work with i128 version of numbers
+            // TODO What happens with i128 numbers & overflowing?
+            let val: i128 = val as i128;
+            // convert it to zig zag encoding
+            let mut val = (val << 1) ^ (val >> std::mem::size_of::<$type>() * 8 - 1);
+            let mut num: u8;
 
-    // to prevent around overflows, work with i128 version of numbers
-    // TODO What happens with i128 numbers & overflowing?
-    let val: i128 = val as i128;
-    // convert it to zig zag encoding
-    let mut val = (val << 1) ^ (val >> std::mem::size_of::<$type>()*8-1);
-    let mut num: u8;
-
-    while val != 0 {
-        num = (val & 0b0111_1111) as u8;
-        val >>= 7;
-        if val != 0 {
-            num |= 0b1000_0000;
+            while val != 0 {
+                num = (val & 0b0111_1111) as u8;
+                val >>= 7;
+                if val != 0 {
+                    num |= 0b1000_0000;
+                }
+                buf.push(num);
+            }
         }
-        buf.push(num);
-    }
+    };
 }
-}}
 
 write_signed!(write_i8, i8);
 write_signed!(write_i16, i16);
@@ -231,12 +226,16 @@ trait VarInt {
     fn as_varint(&self) -> Vec<u8>;
     fn write_varint(&self, buf: &mut Vec<u8>);
 
-    fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> where Self: Sized;
+    fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError>
+    where
+        Self: Sized;
 
-    fn read_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> where Self: Sized {
+    fn read_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError>
+    where
+        Self: Sized,
+    {
         Self::from_varint(buf)
     }
-
 }
 
 pub enum VartyIntReadError {
@@ -250,24 +249,22 @@ trait ReadVarInt {
 
 macro_rules! trait_impl {
     ( $type:ty, $read: ident, $write: ident ) => {
+        impl VarInt for $type {
+            fn as_varint(&self) -> Vec<u8> {
+                let mut vec = vec![];
+                $write(*self, &mut vec);
+                vec
+            }
+            fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> {
+                $read(buf)
+            }
 
-impl VarInt for $type {
-    fn as_varint(&self) -> Vec<u8> {
-        let mut vec = vec![];
-        $write(*self, &mut vec);
-        vec
-    }
-    fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> {
-        $read(buf)
-    }
-
-    fn write_varint(&self, buf: &mut Vec<u8>) {
-        $write(*self, buf)
-    }
+            fn write_varint(&self, buf: &mut Vec<u8>) {
+                $write(*self, buf)
+            }
+        }
+    };
 }
-
-
-}}
 
 trait_impl!(i8, read_i8, write_i8);
 trait_impl!(i16, read_i16, write_i16);
