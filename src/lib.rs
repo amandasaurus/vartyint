@@ -299,7 +299,7 @@ where
     }
 }
 
-pub fn read_many<'a, T>(buf: &'a [u8]) -> impl Iterator<Item = Result<T, VartyIntError>> + 'a
+pub fn read_many<T>(buf: &[u8]) -> impl Iterator<Item = Result<T, VartyIntError>> + '_
 where
     T: VarInt,
 {
@@ -308,7 +308,7 @@ where
         if buf.is_empty() {
             return None;
         }
-        match T::read_varint(&buf) {
+        match T::read_varint(buf) {
             Err(VartyIntError::EmptyBuffer) => None,
             Err(e) => Some(Err(e)),
             Ok((num, newbuf)) => {
@@ -351,7 +351,7 @@ where
         if buf.is_empty() {
             return None;
         }
-        match T::read_varint(&buf) {
+        match T::read_varint(buf) {
             Err(VartyIntError::EmptyBuffer) => None,
             Err(e) => Some(Err(e)),
             Ok((num, newbuf)) => {
