@@ -308,50 +308,46 @@ mod tests {
     test_write!(write24, write_i32, 2001649404, vec![248, 251, 245, 244, 14]);
 
 
-    #[test]
-    fn read1() {
-        macro_rules! assert_read {
-            ( $func:ident, $input:expr, $expected_output:expr, $expected_output_buf:expr ) => {
-                {
-                    let output = $func($input);
-                    assert!(output.is_ok(), "Expected {:?} to be OK, but got an error", $input);
-                    let output = output.unwrap();
-                    assert_eq!($expected_output, output.0, "Expected output {:?} but got {:?}", $expected_output, output.0);
-                    assert_eq!($expected_output_buf, output.1, "Expected the rest of the buffer to be {:?} but got {:?}", $expected_output_buf, output.1);
-                }
-        }}
+    macro_rules! test_read {
+        ( $name:ident, $func:ident, $input:expr, $expected_output:expr, $expected_output_buf:expr ) => {
+            #[test]
+            fn $name()
+            {
+                let output = $func($input);
+                assert!(output.is_ok(), "Expected {:?} to be OK, but got an error", $input);
+                let output = output.unwrap();
+                assert_eq!($expected_output, output.0, "Expected output {:?} but got {:?}", $expected_output, output.0);
+                assert_eq!($expected_output_buf, output.1, "Expected the rest of the buffer to be {:?} but got {:?}", $expected_output_buf, output.1);
+            }
+    }}
 
-        macro_rules! assert_cant_read {
-            ( $func:ident, $input:expr ) => {
-                {
-                    let output = $func($input);
-                    assert!(output.is_err());
+    macro_rules! test_cant_read {
+        ( $name:ident, $func:ident, $input:expr ) => {
+            #[test]
+            fn $name()
+            {
+                let output = $func($input);
+                assert!(output.is_err());
+            }
+    }}
 
-                }
-        }}
+    test_read!(read2, read_usize, &[185, 96], 12345, &[] as &[u8]);
+    test_read!(read3, read_usize, &[127], 127, &[] as &[u8]);
+    test_read!(read4, read_usize, &[0b1000_0000, 0b0000_0001], 128, &[] as &[u8]);
 
-        assert_read!(read_usize, &[185, 96], 12345, &[] as &[u8]);
-        assert_read!(read_usize, &[127], 127, &[] as &[u8]);
+    test_read!(read5, read_u8, &[0], 0, &[] as &[u8]);
+    test_read!(read6, read_u8, &[0, 200], 0, vec![200]);
+    test_read!(read7, read_u8, &[1], 1, &[] as &[u8]);
+    test_cant_read!(empty, read_u8, &[]);
 
-        assert_read!(read_usize, &[0b1000_0000, 0b0000_0001], 128, &[] as &[u8]);
-
-        assert_read!(read_u8, &[0], 0, &[] as &[u8]);
-        assert_read!(read_u8, &[0, 200], 0, vec![200]);
-        assert_read!(read_u8, &[1], 1, &[] as &[u8]);
-        assert_cant_read!(read_u8, &[]);
-
-        assert_read!(read_i64, &[0, 200], 0, vec![200]);
-
-        assert_read!(read_isize, &[242, 192, 1], 12345, &[] as &[u8]);
-        assert_read!(read_usize, &[188, 1, 105, 117, 121], 188, &[105, 117, 121]);
-
-        assert_read!(read_i8, &[0x00], 0, &[] as &[u8]);
-        assert_read!(read_i8, &[0x01], -1, &[] as &[u8]);
-        assert_read!(read_i8, &[0x02], 1, &[] as &[u8]);
-        assert_read!(read_i8, &[0x03], -2, &[] as &[u8]);
-        assert_read!(read_i8, &[0x04], 2, &[] as &[u8]);
-
-    }
+    test_read!(read9, read_i64, &[0, 200], 0, vec![200]);
+    test_read!(read10, read_isize, &[242, 192, 1], 12345, &[] as &[u8]);
+    test_read!(read11, read_usize, &[188, 1, 105, 117, 121], 188, &[105, 117, 121]);
+    test_read!(read12, read_i8, &[0x00], 0, &[] as &[u8]);
+    test_read!(read13, read_i8, &[0x01], -1, &[] as &[u8]);
+    test_read!(read14, read_i8, &[0x02], 1, &[] as &[u8]);
+    test_read!(read15, read_i8, &[0x03], -2, &[] as &[u8]);
+    test_read!(read16, read_i8, &[0x04], 2, &[] as &[u8]);
 
     #[test]
     /// Ensure we get the same result out as in.
