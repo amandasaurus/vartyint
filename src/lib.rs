@@ -222,7 +222,7 @@ write_signed!(write_i64, i64);
 write_signed!(write_i128, i128);
 write_signed!(write_isize, isize);
 
-trait VarInt {
+pub trait VarInt {
     fn as_varint(&self) -> Vec<u8>;
     fn write_varint(&self, buf: &mut Vec<u8>);
 
@@ -277,3 +277,37 @@ trait_impl!(u16, read_u16, write_u16);
 trait_impl!(u32, read_u32, write_u32);
 trait_impl!(u64, read_u64, write_u64);
 trait_impl!(u128, read_u128, write_u128);
+
+pub fn write_many_new<T>(nums: &[T]) -> Vec<u8>
+    where T: VarInt
+{
+    let mut buf = vec![];
+    write_many(nums, &mut buf);
+    buf
+}
+pub fn write_many<T>(nums: &[T], buf: &mut Vec<u8>)
+    where T: VarInt
+{
+    for num in nums.iter() {
+        num.write_varint(buf);
+    }
+}
+
+pub fn read_many<'a, T>(buf: &'a [u8]) -> impl Iterator<Item=Result<T, VartyIntError>> + 'a
+    where T: VarInt
+{
+    let mut buf = buf;
+    std::iter::from_fn(move || {
+        if buf.is_empty() {
+            return None;
+        }
+        match T::read_varint(&buf) {
+            Err(VartyIntError::EmptyBuffer) => None,
+            Err(e) => { Some(Err(e)) },
+            Ok((num, newbuf)) => {
+                buf = newbuf;
+                Some(Ok(num))
+            }
+        }
+    })
+}

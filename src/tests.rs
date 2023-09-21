@@ -176,3 +176,11 @@ fn traits1() {
 
     assert_eq!(i32::from_varint(&[0x02]), Ok((1, &[] as &[u8])));
 }
+
+#[test]
+fn vecs1() {
+    assert_eq!(write_many_new(&[1u8, 1, 2]), vec![1, 1, 2] );
+    assert_eq!(write_many_new(&[1u64, 1<<5, 2<<8]), vec![1, 32, 128, 4] );
+
+    assert_eq!(read_many(&[1, 32, 128, 4]).collect::<Result<Vec<u64>, _>>().unwrap(), vec![1, 1<<5, 2<<8]);
+}
