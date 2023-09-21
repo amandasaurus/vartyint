@@ -3,7 +3,7 @@ name = "vartyint"
 version = "0.2.0-rc1"
 authors = ["Amanda McCann <amanda@technomancy.org>"]
 edition = "2021"
-license = "AGPL-3.0"
+license = "MIT OR Apache-2.0"
 description = "Read & Write varint encoded integers"
 repository = "https://github.com/amandasaurus/vartyint"
 
