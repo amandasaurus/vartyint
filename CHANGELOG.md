@@ -1,4 +1,4 @@
-# Unreleased
+# v0.2.0 (2023-09-21)
 
 * Added functions to read & write Vec's of integers
 * Added functions to read & write delta encoded vecs of integers
