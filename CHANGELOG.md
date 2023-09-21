@@ -1,5 +1,7 @@
 # Unreleased
 
+* Added functions to read & write Vec's of integers
+* Added functions to read & write delta encoded vecs of integers
 * Fix integer overflow error
 * Change edition to 2021 from 2018
 * Relicence to MIT/Apache-2.0
