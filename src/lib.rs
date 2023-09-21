@@ -222,7 +222,8 @@ write_signed!(write_i64, i64);
 write_signed!(write_i128, i128);
 write_signed!(write_isize, isize);
 
-pub trait VarInt {
+pub trait VarInt: std::fmt::Debug+Copy {
+    fn zero() -> Self;
     fn as_varint(&self) -> Vec<u8>;
     fn write_varint(&self, buf: &mut Vec<u8>);
 
@@ -250,6 +251,7 @@ trait ReadVarInt {
 macro_rules! trait_impl {
     ( $type:ty, $read: ident, $write: ident ) => {
         impl VarInt for $type {
+            fn zero() -> Self { 0 }
             fn as_varint(&self) -> Vec<u8> {
                 let mut vec = vec![];
                 $write(*self, &mut vec);
@@ -307,6 +309,45 @@ pub fn read_many<'a, T>(buf: &'a [u8]) -> impl Iterator<Item=Result<T, VartyIntE
             Ok((num, newbuf)) => {
                 buf = newbuf;
                 Some(Ok(num))
+            }
+        }
+    })
+}
+
+pub fn write_many_delta_new<T>(nums: &[T]) -> Vec<u8>
+    where T: VarInt + std::ops::Sub<T, Output=T> + Copy,
+{
+    let mut buf = Vec::with_capacity(nums.len());
+    write_many_delta(nums, &mut buf);
+    buf
+}
+
+pub fn write_many_delta<T>(nums: &[T], buf: &mut Vec<u8>)
+    where T: VarInt + std::ops::Sub<T, Output=T>
+{
+    let mut last: T = T::zero();
+    for num in nums {
+        (*num - last).write_varint(buf);
+        last = *num
+    }
+}
+
+pub fn read_many_delta_new<'a, T>(buf: &'a [u8]) -> impl Iterator<Item=Result<T, VartyIntError>> + 'a
+    where T: VarInt + std::ops::Add<T, Output=T> + Copy + 'a
+{
+    let mut buf = buf;
+    let mut last = T::zero();
+    std::iter::from_fn(move || {
+        if buf.is_empty() {
+            return None;
+        }
+        match T::read_varint(&buf) {
+            Err(VartyIntError::EmptyBuffer) => None,
+            Err(e) => { Some(Err(e)) },
+            Ok((num, newbuf)) => {
+                buf = newbuf;
+                last = last + num;
+                Some(Ok(last))
             }
         }
     })

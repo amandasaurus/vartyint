@@ -184,3 +184,49 @@ fn vecs1() {
 
     assert_eq!(read_many(&[1, 32, 128, 4]).collect::<Result<Vec<u64>, _>>().unwrap(), vec![1, 1<<5, 2<<8]);
 }
+
+mod delta_enc {
+    use super::*;
+
+    macro_rules! test_delta_enc {
+        ( $name:ident, $input:expr, $expected_output:expr ) => {
+            #[test]
+            fn $name() {
+                let output = write_many_delta_new($input);
+                assert_eq!(
+                    $expected_output, output,
+                    "Expected output {:?} but got {:?}",
+                    $expected_output, output,
+                );
+            }
+        };
+    }
+
+    test_delta_enc!(write_empty, &[] as &[u8], vec![] as Vec<u8>);
+    test_delta_enc!(write_single, &[10_000i64], vec![160, 156, 1]);
+    test_delta_enc!(write2, &[10_000i64, 10_001, 10_002], vec![160, 156, 1, 2, 2,]);
+    test_delta_enc!(write3, &[10_000i64, 2], vec![160, 156, 1, 155, 156, 1]);
+    test_delta_enc!(write4, &[10, 9, 8], vec![20, 1, 1]);
+    test_delta_enc!(write5, &[10, 10], vec![20, 0]);
+    test_delta_enc!(write6, &[10, 9], vec![20, 1]);
+
+    macro_rules! test_delta_dec {
+        ( $name:ident, $input:expr, $expected_output:expr ) => {
+            #[test]
+            fn $name() {
+                let output = read_many_delta_new($input).collect::<Result<Vec<_>, _>>().unwrap();
+                assert_eq!(
+                    $expected_output, output,
+                    "Expected output {:?} but got {:?}",
+                    $expected_output, output,
+                );
+            }
+        };
+    }
+
+    test_delta_dec!(read_empty, &[], vec![] as Vec<i32>);
+    test_delta_dec!(read1, &[160, 156, 1], vec![10_000_i64]);
+    test_delta_dec!(read2, &[160, 156, 1, 2], vec![10_000_i64, 10_001] );
+    test_delta_dec!(read3, &[160, 156, 1, 2, 2], vec![10_000_i64, 10_001, 10_002] );
+
+}
