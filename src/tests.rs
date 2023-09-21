@@ -223,7 +223,7 @@ mod delta_enc {
         ( $name:ident, $input:expr, $expected_output:expr ) => {
             #[test]
             fn $name() {
-                let output = read_many_delta_new($input)
+                let output = read_many_delta($input)
                     .collect::<Result<Vec<_>, _>>()
                     .unwrap();
                 assert_eq!(

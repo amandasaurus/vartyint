@@ -339,7 +339,7 @@ where
     }
 }
 
-pub fn read_many_delta_new<'a, T>(
+pub fn read_many_delta<'a, T>(
     buf: &'a [u8],
 ) -> impl Iterator<Item = Result<T, VartyIntError>> + 'a
 where
@@ -361,4 +361,13 @@ where
             }
         }
     })
+}
+
+pub fn read_many_delta_new<'a, T>(
+    buf: &'a [u8],
+) -> Result<Vec<T>, VartyIntError>
+where
+    T: VarInt + std::ops::Add<T, Output = T> + Copy + 'a,
+{
+    read_many_delta(buf).collect::<Result<Vec<_>, _>>()
 }
