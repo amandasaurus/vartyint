@@ -226,7 +226,14 @@ write_signed!(write_isize, isize);
 
 trait VarInt {
     fn as_varint(&self) -> Vec<u8>;
+    fn write_varint(&self, buf: &mut Vec<u8>);
+
     fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> where Self: Sized;
+
+    fn read_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> where Self: Sized {
+        Self::from_varint(buf)
+    }
+
 }
 
 pub enum VartyIntReadError {
@@ -249,6 +256,10 @@ impl VarInt for $type {
     }
     fn from_varint(buf: &[u8]) -> Result<(Self, &[u8]), VartyIntError> {
         $read(buf)
+    }
+
+    fn write_varint(&self, buf: &mut Vec<u8>) {
+        $write(*self, buf)
     }
 }
 
