@@ -1,3 +1,7 @@
+# v0.3.0 (2023-10-16)
+
+* Fix bug
+
 # v0.2.0 (2023-09-21)
 
 * Added functions to read & write Vec's of integers

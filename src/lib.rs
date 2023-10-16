@@ -64,19 +64,11 @@ macro_rules! write_unsigned {
     ( $name:ident, $type:ty ) => {
         /// Write an integer to this buffer
         pub fn $name(mut val: $type, buf: &mut Vec<u8>) {
-            if val == 0 {
-                buf.push(0);
-                return;
-            }
-
-            while val != 0 {
-                let mut num = (val & 0b0111_1111) as u8;
+            while val >= 0b1000_0000 {
+                buf.push((val as u8) | 0b1000_0000);
                 val >>= 7;
-                if val != 0 {
-                    num |= 0b1000_0000;
-                }
-                buf.push(num);
             }
+            buf.push(val as u8);
         }
     };
 }
@@ -95,31 +87,27 @@ macro_rules! read_unsigned {
             if buf.is_empty() {
                 return Err(VartyIntError::EmptyBuffer);
             }
-            let mut num_bits_read = 0;
             let mut val: $type = 0;
-            let mut is_last: bool;
+            let mut shift = 0;
             let mut byte: $type;
-
+            let mut is_last: bool;
             loop {
                 if buf.is_empty() {
                     return Err(VartyIntError::NotEnoughBytes);
                 }
                 byte = buf[0] as $type;
-                buf = &buf[1..];
-
                 is_last = byte >> 7 == 0;
                 byte &= 0b0111_1111;
-
-                byte = match byte.checked_shl(num_bits_read) {
+                buf = &buf[1..];
+                byte = match byte.checked_shl(shift) {
                     None => {
                         return Err(VartyIntError::TooManyBytesForType);
                     }
-                    Some(v) => v,
+                    Some(b) => b,
                 };
                 val |= byte;
-                num_bits_read += 7;
+                shift += 7;
                 if is_last {
-                    // last byte
                     break;
                 }
             }
@@ -144,16 +132,16 @@ macro_rules! read_signed {
                 return Err(VartyIntError::EmptyBuffer);
             }
             let mut num_bits_read = 0;
-            let mut val: $type = 0;
+            let mut val: i128 = 0;
             let mut is_last: bool;
 
-            let mut byte: $type;
+            let mut byte: i128;
 
             loop {
                 if buf.is_empty() {
                     return Err(VartyIntError::NotEnoughBytes);
                 }
-                byte = buf[0] as $type;
+                byte = buf[0] as i128;
                 buf = &buf[1..];
 
                 is_last = byte >> 7 == 0;
@@ -173,9 +161,18 @@ macro_rules! read_signed {
                 }
             }
 
-            let val = (val >> 1) ^ -(val & 1);
+            let mut sign = 1;
+            if val & 0b0000_0001 == 1 {
+                sign = -1;
+                val += 1;
+            }
+            val >>= 1;
+            val *= sign;
 
-            Ok((val, buf))
+            match val.try_into() {
+                Err(_) => Err(VartyIntError::TooManyBytesForType),
+                Ok(val) => Ok((val, buf)),
+            }
         }
     };
 }
@@ -339,9 +336,7 @@ where
     }
 }
 
-pub fn read_many_delta<'a, T>(
-    buf: &'a [u8],
-) -> impl Iterator<Item = Result<T, VartyIntError>> + 'a
+pub fn read_many_delta<'a, T>(buf: &'a [u8]) -> impl Iterator<Item = Result<T, VartyIntError>> + 'a
 where
     T: VarInt + std::ops::Add<T, Output = T> + Copy + 'a,
 {
@@ -363,9 +358,7 @@ where
     })
 }
 
-pub fn read_many_delta_new<'a, T>(
-    buf: &'a [u8],
-) -> Result<Vec<T>, VartyIntError>
+pub fn read_many_delta_new<'a, T>(buf: &'a [u8]) -> Result<Vec<T>, VartyIntError>
 where
     T: VarInt + std::ops::Add<T, Output = T> + Copy + 'a,
 {

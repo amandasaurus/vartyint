@@ -40,6 +40,8 @@ test_write!(write22, write_isize, 12345, vec![242, 192, 1]);
 test_write!(write23, write_i32, -1649404, vec![247, 171, 201, 1]);
 test_write!(write24, write_i32, 2001649404, vec![248, 251, 245, 244, 14]);
 
+test_write!(write25, write_i32, 1529263114, [148, 208, 181, 178, 11]);
+
 macro_rules! test_read {
     ( $name:ident, $func:ident, $input:expr, $expected_output:expr, $expected_output_buf:expr ) => {
         #[test]
@@ -105,25 +107,32 @@ test_read!(read14, read_i8, &[0x02], 1, &[] as &[u8]);
 test_read!(read15, read_i8, &[0x03], -2, &[] as &[u8]);
 test_read!(read16, read_i8, &[0x04], 2, &[] as &[u8]);
 
+test_read!(read17, read_i32, &[0x02], 1, &[] as &[u8]);
+
+macro_rules! assert_same {
+    ( $reader:ident, $writer:ident, $input:expr ) => {{
+        let mut veccy = Vec::new();
+        $writer($input, &mut veccy);
+        dbg!("number has been encoded");
+        let res = $reader(&veccy);
+        assert!(res.is_ok());
+        let (num, rest) = res.unwrap();
+        assert_eq!(
+            num, $input,
+            "Input {} got mangled in encoding/decoding",
+            $input
+        );
+        assert!(
+            rest.is_empty(),
+            "Expected no further bytes, got {:?} instead",
+            rest
+        );
+    }};
+}
+
 #[test]
 /// Ensure we get the same result out as in.
 fn varint_idempotent1() {
-    macro_rules! assert_same {
-        ( $reader:ident, $writer:ident, $input:expr ) => {{
-            let mut veccy = Vec::new();
-            $writer($input, &mut veccy);
-            let res = $reader(&veccy);
-            assert!(res.is_ok());
-            let (num, rest) = res.unwrap();
-            assert_eq!(num, $input);
-            assert!(
-                rest.is_empty(),
-                "Expected no further bytes, got {:?} instead",
-                rest
-            );
-        }};
-    }
-
     assert_same!(read_isize, write_isize, 12_345);
     assert_same!(read_isize, write_isize, -12_345);
     assert_same!(read_i8, write_i8, 1);
@@ -134,6 +143,17 @@ fn varint_idempotent1() {
     assert_same!(read_usize, write_usize, 12_345);
 
     assert_same!(read_i64, write_i64, 50 << 10);
+
+    assert_same!(read_i32, write_i32, 1 << 29);
+    assert_same!(read_i32, write_i32, 1 << 30);
+    assert_same!(read_i32, write_i32, 1 << 31);
+}
+
+/// a test case we saw
+#[test]
+fn siberia_boatable() {
+    assert_same!(read_i32, write_i32, 1 << 30);
+    assert_same!(read_i32, write_i32, 1529263114);
 }
 
 #[test]
