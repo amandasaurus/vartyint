@@ -296,6 +296,7 @@ where
     }
 }
 
+/// Read many different integers from this list of bytes, one after the other.
 pub fn read_many<T>(buf: &[u8]) -> impl Iterator<Item = Result<T, VartyIntError>> + '_
 where
     T: VarInt,
@@ -336,6 +337,9 @@ where
     }
 }
 
+/// Read many different integers from this list of bytes, one after the other, where the integers
+/// are stores as offsets from each other. This is very effecient when a lot of integers are
+/// incrementing
 pub fn read_many_delta<'a, T>(buf: &'a [u8]) -> impl Iterator<Item = Result<T, VartyIntError>> + 'a
 where
     T: VarInt + std::ops::Add<T, Output = T> + Copy + 'a,
@@ -358,6 +362,9 @@ where
     })
 }
 
+/// Read many different integers from this list of bytes, one after the other, where the integers
+/// are stores as offsets from each other. This is very effecient when a lot of integers are
+/// incrementing. Like `read_many_delta`, but returns the allocated vec for you.
 pub fn read_many_delta_new<'a, T>(buf: &'a [u8]) -> Result<Vec<T>, VartyIntError>
 where
     T: VarInt + std::ops::Add<T, Output = T> + Copy + 'a,
