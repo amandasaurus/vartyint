@@ -279,6 +279,7 @@ trait_impl!(u32, read_u32, write_u32);
 trait_impl!(u64, read_u64, write_u64);
 trait_impl!(u128, read_u128, write_u128);
 
+/// Like write_many, but creates a fresh vec and returns it.
 pub fn write_many_new<T>(nums: &[T]) -> Vec<u8>
 where
     T: VarInt,
@@ -287,6 +288,7 @@ where
     write_many(nums, &mut buf);
     buf
 }
+/// turn the numbers into a sequence of varint bytes, adding to the end of the buf Vec
 pub fn write_many<T>(nums: &[T], buf: &mut Vec<u8>)
 where
     T: VarInt,
